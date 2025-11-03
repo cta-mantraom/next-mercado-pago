@@ -1,12 +1,13 @@
 import PaymentStatusDisplay from './components/PaymentStatusDisplay'
 import CheckoutForm from './components/CheckoutForm'
 
-export default function Page({
+export default async function Page({
   searchParams,
 }: {
-  searchParams?: { status?: string | string[] }
+  searchParams: Promise<{ status?: string | string[] }>
 }) {
-  const rawStatus = searchParams?.status
+  const params = await searchParams
+  const rawStatus = params?.status
   const status = Array.isArray(rawStatus) ? rawStatus[0] : rawStatus
 
   return (

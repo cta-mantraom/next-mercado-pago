@@ -1,3 +1,6 @@
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 // app/api/mercadopago-webhook/route.js
 
 import { NextResponse } from "next/server";

@@ -1,8 +1,9 @@
-import { type NextRequest } from 'next/server'
-import { updateSession } from '@/app/lib/supabase/middleware'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+// Middleware mínimo compatível com Edge Runtime.
+// Removemos qualquer import de Supabase para evitar warnings e manter performance.
+export function middleware(request: NextRequest) {
+  return NextResponse.next()
 }
 
 export const config = {
