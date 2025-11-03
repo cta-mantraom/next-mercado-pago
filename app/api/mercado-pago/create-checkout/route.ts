@@ -3,23 +3,23 @@ import { Preference } from "mercadopago";
 import mpClient from "@/app/lib/mercado-pago";
 
 export async function POST(req: NextRequest) {
-  const { testeId, userEmail } = await req.json();
+  const { testeId, userEmail, name, phone, email } = await req.json();
 
   try {
     const preference = new Preference(mpClient);
 
     const createdPreference = await preference.create({
       body: {
-        external_reference: testeId, // IMPORTANTE: Isso aumenta a pontuação da sua integração com o Mercado Pago - É o id da compra no nosso sistema
+        external_reference: testeId, // IMPORTANTE: id da compra no nosso sistema
         metadata: {
-          testeId, // O Mercado Pago converte para snake_case, ou seja, testeId vai virar teste_id
-          // userEmail: userEmail,
-          // plan: '123'
-          //etc
+          testeId, // Mercado Pago converte para snake_case (teste_id)
+          name,
+          phone,
+          userEmail: userEmail || email,
         },
-        ...(userEmail && {
+        ...((userEmail || email) && {
           payer: {
-            email: userEmail,
+            email: userEmail || email,
           },
         }),
 

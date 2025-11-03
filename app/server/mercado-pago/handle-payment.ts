@@ -1,13 +1,24 @@
 import "server-only";
-
 import { PaymentResponse } from "mercadopago/dist/clients/payment/commonTypes";
+import { createServerClient } from "@/app/lib/supabase/server";
 
 export async function handleMercadoPagoPayment(paymentData: PaymentResponse) {
-  const metadata = paymentData.metadata;
-  const userEmail = metadata.user_email; // Os metadados do Mercado Pago são convertidos para snake_case
-  const testeId = metadata.teste_id; // Os metadados do Mercado Pago são convertidos para snake_case
+  const metadata: any = paymentData.metadata || {};
+  const userEmail: string | null = metadata.user_email ?? paymentData.payer?.email ?? null;
+  const fullName: string | null = metadata.name ?? null;
+  const phone: string | null = metadata.phone ?? null;
 
-  // Faz alguma ação aqui - manda email pro usuario, libera acesso, erc.
+  try {
+    const supabase = await createServerClient();
+    // Salva/atualiza perfil básico do comprador
+    await supabase.from("profiles").insert({
+      full_name: fullName,
+      email: userEmail,
+      phone,
+    });
+  } catch (error) {
+    console.error("Supabase insert profile error:", error);
+  }
 
   return;
 }
