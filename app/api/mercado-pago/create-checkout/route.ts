@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Preference } from "mercadopago";
 import mpClient from "@/app/lib/mercado-pago";
 import { CreateCheckoutInputSchema, CheckoutMetadataSchema } from "@/app/lib/payments/schemas";
+import { getPublicEnvSafe } from "@/app/lib/config/env";
 
 export async function POST(req: NextRequest) {
   const raw = await req.json();
@@ -16,6 +17,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const preference = new Preference(mpClient);
+
+    const publicEnv = getPublicEnvSafe();
+    const origin = req.nextUrl.origin || publicEnv?.NEXT_PUBLIC_APP_URL || req.headers.get("origin") || "";
 
     const createdPreference = await preference.create({
       body: {
@@ -66,9 +70,9 @@ export async function POST(req: NextRequest) {
         },
         auto_return: "approved",
         back_urls: {
-          success: `${req.headers.get("origin")}/?status=sucesso`,
-          failure: `${req.headers.get("origin")}/?status=falha`,
-          pending: `${req.headers.get("origin")}/api/mercado-pago/pending`, // Criamos uma rota para lidar com pagamentos pendentes
+          success: `${origin}/?status=sucesso`,
+          failure: `${origin}/?status=falha`,
+          pending: `${origin}/api/mercado-pago/pending`, // Criamos uma rota para lidar com pagamentos pendentes
         },
       },
     });

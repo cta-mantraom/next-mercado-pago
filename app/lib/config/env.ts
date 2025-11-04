@@ -28,6 +28,7 @@ export type PublicEnv = z.infer<typeof PublicEnvSchema>
 
 let cachedServerEnv: ServerEnv | null = null
 let cachedPublicEnv: PublicEnv | null = null
+let cachedSupabasePublicEnv: SupabasePublicEnv | null = null
 
 /**
  * Strict server env getter – throws on invalid/missing values.
@@ -69,4 +70,47 @@ export function getPublicEnvSafe(): PublicEnv | null {
   }
   cachedPublicEnv = parsed.data
   return cachedPublicEnv
+}
+
+// Supabase-specific public env schema (strict for clients that require Supabase)
+const SupabasePublicEnvSchema = z.object({
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url({ message: 'NEXT_PUBLIC_SUPABASE_URL must be a valid URL' }),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
+})
+
+export type SupabasePublicEnv = z.infer<typeof SupabasePublicEnvSchema>
+
+/**
+ * Strict Supabase public env getter – throws if URL or anon key are missing/invalid.
+ */
+export function getSupabasePublicEnvStrict(): SupabasePublicEnv {
+  if (cachedSupabasePublicEnv) return cachedSupabasePublicEnv
+  const parsed = SupabasePublicEnvSchema.safeParse(process.env)
+  if (!parsed.success) {
+    const issues = parsed.error.issues
+      .map((e) => `${e.path.join('.')}: ${e.message}`)
+      .join('; ')
+    throw new Error(`[Env] Missing/invalid Supabase public env: ${issues}`)
+  }
+  cachedSupabasePublicEnv = parsed.data
+  return cachedSupabasePublicEnv
+}
+
+/**
+ * Safe Supabase public env getter – returns null if missing.
+ */
+export function getSupabasePublicEnvSafe(): SupabasePublicEnv | null {
+  if (cachedSupabasePublicEnv) return cachedSupabasePublicEnv
+  const parsed = SupabasePublicEnvSchema.safeParse(process.env)
+  if (!parsed.success) {
+    const missing = parsed.error.issues.map((e) => e.path.join('.')).join(', ')
+    if (typeof window !== 'undefined') {
+      console.warn('[Env] Supabase public env not fully configured:', missing)
+    } else {
+      console.warn('[Env] Supabase public env not fully configured:', missing)
+    }
+    return null
+  }
+  cachedSupabasePublicEnv = parsed.data
+  return cachedSupabasePublicEnv
 }

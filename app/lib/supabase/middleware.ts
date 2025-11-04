@@ -1,19 +1,20 @@
 import { createServerClient } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
-import { getSupabaseEnvVarsSafe } from '@/app/lib/utils/env'
+import { getSupabasePublicEnvSafe } from '@/app/lib/config/env'
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request })
 
-  const envVars = getSupabaseEnvVarsSafe()
-  if (!envVars) {
+  const env = getSupabasePublicEnvSafe()
+  if (!env) {
     if (process.env.NODE_ENV === 'development') {
       console.warn('Supabase env vars not found in middleware')
     }
     return response
   }
 
-  const { url, anonKey } = envVars
+  const url = env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   try {
     const supabase = createServerClient(url, anonKey, {
