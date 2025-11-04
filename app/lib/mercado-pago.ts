@@ -1,10 +1,13 @@
 import { MercadoPagoConfig } from "mercadopago";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { getServerEnvStrict } from "./config/env";
 
 // Instância do cliente Mercado Pago
+const { MERCADO_PAGO_ACCESS_TOKEN, MERCADO_PAGO_WEBHOOK_SECRET } = getServerEnvStrict();
+
 const mpClient = new MercadoPagoConfig({
-  accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN as string,
+  accessToken: MERCADO_PAGO_ACCESS_TOKEN,
 });
 
 export default mpClient;
@@ -52,7 +55,7 @@ export function verifyMercadoPagoSignature(request: Request): NextResponse | und
   }
   manifest += `ts:${ts};`;
 
-  const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET as string;
+  const secret = MERCADO_PAGO_WEBHOOK_SECRET;
   const hmac = crypto.createHmac("sha256", secret);
   hmac.update(manifest);
   const generatedHash = hmac.digest("hex");
