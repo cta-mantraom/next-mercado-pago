@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { initMercadoPago } from "@mercadopago/sdk-react";
 import { useRouter } from "next/navigation";
+import type { CheckoutFormData } from "@/app/lib/payments/types";
 
 const useMercadoPago = () => {
   const router = useRouter();
@@ -9,7 +10,7 @@ const useMercadoPago = () => {
     initMercadoPago(process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY!);
   }, []);
 
-  async function createMercadoPagoCheckout(checkoutData: any) {
+  async function createMercadoPagoCheckout(checkoutData: CheckoutFormData) {
     try {
       const response = await fetch("/api/mercado-pago/create-checkout", {
         method: "POST",

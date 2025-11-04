@@ -11,7 +11,7 @@ export default mpClient;
 
 // Função auxiliar para verificar a assinatura do Mercado Pago - Protege sua rota de acessos maliciosos
 // Disponível na própria documentação do Mercado Pago
-export function verifyMercadoPagoSignature(request: Request) {
+export function verifyMercadoPagoSignature(request: Request): NextResponse | undefined {
   const xSignature = request.headers.get("x-signature");
   const xRequestId = request.headers.get("x-request-id");
   if (!xSignature || !xRequestId) {

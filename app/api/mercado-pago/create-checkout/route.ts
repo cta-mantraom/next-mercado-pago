@@ -4,9 +4,15 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from "next/server";
 import { Preference } from "mercadopago";
 import mpClient from "@/app/lib/mercado-pago";
+import { CreateCheckoutInputSchema, CheckoutMetadataSchema } from "@/app/lib/payments/schemas";
 
 export async function POST(req: NextRequest) {
-  const { testeId, userEmail, name, phone, email } = await req.json();
+  const raw = await req.json();
+  const parsed = CreateCheckoutInputSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid checkout payload" }, { status: 400 });
+  }
+  const { testeId, userEmail, name, phone, email } = parsed.data;
 
   try {
     const preference = new Preference(mpClient);
@@ -14,12 +20,13 @@ export async function POST(req: NextRequest) {
     const createdPreference = await preference.create({
       body: {
         external_reference: testeId, // IMPORTANTE: id da compra no nosso sistema
-        metadata: {
+        metadata: CheckoutMetadataSchema.parse({
           testeId, // Mercado Pago converte para snake_case (teste_id)
           name,
           phone,
           userEmail: userEmail || email,
-        },
+          version: 'v1',
+        }),
         ...((userEmail || email) && {
           payer: {
             email: userEmail || email,

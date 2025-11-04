@@ -8,17 +8,22 @@ import { Payment } from "mercadopago";
 import mpClient, { verifyMercadoPagoSignature } from "@/app/lib/mercado-pago";
 import { handleMercadoPagoPayment } from "@/app/server/mercado-pago/handle-payment";
 import { createServerClient } from "@/app/lib/supabase/server";
+import { WebhookBodySchema } from "@/app/lib/payments/schemas";
 
 export async function POST(request: Request) {
   try {
-    const signatureResponse: any = verifyMercadoPagoSignature(request);
+    const signatureResponse = verifyMercadoPagoSignature(request);
     if (signatureResponse instanceof NextResponse) {
       return signatureResponse;
     }
 
-    const body = await request.json();
+    const rawBody = await request.json();
+    const parsed = WebhookBodySchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid webhook body" }, { status: 400 });
+    }
 
-    const { type, data } = body;
+    const { type, data } = parsed.data;
 
     switch (type) {
       case "payment":

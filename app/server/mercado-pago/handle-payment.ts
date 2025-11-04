@@ -1,10 +1,13 @@
 import "server-only";
 import { PaymentResponse } from "mercadopago/dist/clients/payment/commonTypes";
 import { createServerClient } from "@/app/lib/supabase/server";
+import { CheckoutMetadataSchema } from "@/app/lib/payments/schemas";
+import type { CheckoutMetadata } from "@/app/lib/payments/types";
 
 export async function handleMercadoPagoPayment(paymentData: PaymentResponse) {
-  const metadata: any = paymentData.metadata || {};
-  const userEmail: string | null = metadata.user_email ?? paymentData.payer?.email ?? null;
+  const parsed = CheckoutMetadataSchema.safeParse(paymentData.metadata);
+  const metadata: Partial<CheckoutMetadata> = parsed.success ? parsed.data : {};
+  const userEmail: string | null = metadata.userEmail ?? paymentData.payer?.email ?? null;
   const fullName: string | null = metadata.name ?? null;
   const phone: string | null = metadata.phone ?? null;
 
