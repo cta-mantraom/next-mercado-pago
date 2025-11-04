@@ -39,22 +39,22 @@ export async function POST(req: NextRequest) {
         ],
         payment_methods: {
           // Descomente para desativar métodos de pagamento
-          //   excluded_payment_methods: [
-          //     {
-          //       id: "bolbradesco",
-          //     },
-          //     {
-          //       id: "pec",
-          //     },
-          //   ],
-          //   excluded_payment_types: [
-          //     {
-          //       id: "debit_card",
-          //     },
-          //     {
-          //       id: "credit_card",
-          //     },
-          //   ],
+             excluded_payment_methods: [
+               {
+                 id: "bolbradesco",
+               },
+               {
+                 id: "pec",
+               },
+             ],
+             excluded_payment_types: [
+               {
+                 id: "debit_card",
+               },
+               {
+                 id: "credit_card",
+               },
+             ],
           installments: 12, // Número máximo de parcelas permitidas - calculo feito automaticamente
         },
         auto_return: "approved",
