@@ -1,0 +1,91 @@
+Estrutura de pastas e arquivos relacionados a Supabase e Mercado Pago (sem frontend)
+
+Projeto: c:\Users\User\Desktop\Projetos\sos-moto\trae\andre-dev\next-mercado-pago
+
+Mercado Pago
+----------------------------------------
+app\api\mercado-pago\
+  create-checkout\
+    route.ts
+  pending\
+    route.ts
+  webhook\
+    route.ts
+
+app\lib\mercado-pago.ts
+
+app\server\mercado-pago\
+  handle-payment.ts
+
+app\lib\payments\
+  schemas.ts
+  types.ts
+
+
+Supabase
+----------------------------------------
+app\lib\supabase\
+  client.ts
+  config.ts
+  middleware.ts
+  server.ts
+
+app\lib\config\
+  env.ts  (inclui variáveis públicas usadas pelos clientes do Supabase)
+
+types\
+  supabase.ts
+
+
+Arquivos auxiliares para integração com frontend
+----------------------------------------
+middleware.ts  (middleware do Next.js compatível com Edge Runtime; infra)
+app\hooks\useMercadoPago.ts  (hook do cliente para inicializar o SDK do Mercado Pago e acionar a criação de checkout)
+
+Endpoints e Fluxo de Integração (Mercado Pago + Supabase)
+----------------------------------------
+- POST /api/mercado-pago/create-checkout
+  - Função: cria uma preferência (Preference) no Mercado Pago e retorna initPoint para redirecionar o cliente ao checkout.
+  - Body esperado (JSON): { testeId, name, phone, email, userEmail? } – conforme CreateCheckoutInputSchema.
+  - Comportamento: define external_reference com testeId, preenche metadata (testeId, name, phone, userEmail, version), configura payment_methods, auto_return = "approved" e back_urls (success, failure, pending).
+  - Resposta: { preferenceId, initPoint }.
+
+- GET /api/mercado-pago/pending
+  - Função: trata o retorno do checkout quando o pagamento está pendente (Pix). É chamado via back_urls.pending.
+  - Query params: payment_id, external_reference, status, preference_id – validados por BackUrlParamsSchema.
+  - Comportamento: busca o pagamento via Payment.get; se status === "approved" ou date_approved !== null, redireciona para "/?status=sucesso"; caso contrário, redireciona para "/".
+
+- POST /api/mercado-pago/webhook
+  - Função: recebe eventos assíncronos do Mercado Pago (type: "payment").
+  - Headers necessários: x-signature, x-request-id. A assinatura é verificada (verifyMercadoPagoSignature) usando HMAC SHA256 com MERCADO_PAGO_WEBHOOK_SECRET, considerando ts e v1 do x-signature, data.id e request-id.
+  - Body: { type: "payment", data: { id } } – validado por WebhookBodySchema.
+  - Comportamento: busca detalhes do pagamento via Payment.get; faz upsert na tabela public.payments do Supabase (id, external_reference, status, date_approved, payer_email, raw, updated_at); se aprovado (status === "approved" ou date_approved !== null), chama handleMercadoPagoPayment.
+
+- Função de servidor: app\server\mercado-pago\handle-payment.ts
+  - Função: processa pagamentos aprovados e atualiza perfis no Supabase.
+  - Entrada: PaymentResponse.
+  - Comportamento: lê metadata (testeId, name, phone, userEmail); extrai email do metadata ou do payer; insere em public.profiles (full_name, email, phone).
+
+- Configuração do cliente Mercado Pago: app\lib\mercado-pago.ts
+  - Usa MERCADO_PAGO_ACCESS_TOKEN para configurar MercadoPagoConfig.
+  - Verificação de assinatura: verifyMercadoPagoSignature (HMAC SHA256 com MERCADO_PAGO_WEBHOOK_SECRET).
+
+- Variáveis de ambiente necessárias
+  - Servidor: MERCADO_PAGO_ACCESS_TOKEN, MERCADO_PAGO_WEBHOOK_SECRET.
+  - Público: NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY; opcionais: NEXT_PUBLIC_APP_URL.
+  - Supabase: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY.
+
+- Tabelas Supabase previstas
+  - public.payments: { id (string), external_reference (string|null), status (string), date_approved (string|null), payer_email (string|null), raw (Json|null), created_at (string), updated_at (string) }.
+  - public.profiles: { id (string), created_at (string), full_name (string|null), email (string|null), phone (string|null) }.
+
+- Conexão com novo frontend
+  - Inicialize o SDK do Mercado Pago com NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY (app\hooks\useMercadoPago.ts).
+  - No frontend, chame POST /api/mercado-pago/create-checkout com os campos do formulário e redirecione o usuário para o initPoint retornado.
+  - Configure NEXT_PUBLIC_APP_URL se precisar garantir back_urls consistentes ao criar a preferência.
+  - O processamento do pagamento e persistência no Supabase ocorre no backend via webhook e handle-payment; o GET /pending cuida apenas do retorno do Pix.
+
+Observações
+----------------------------------------
+- Foram incluídas pastas e arquivos de backend/servidor e bibliotecas internas relacionadas à integração com Mercado Pago e Supabase, além dos arquivos auxiliares solicitados para integração com outro frontend.
+- Demais itens de frontend (components, pages) permanecem excluídos; incluímos apenas middleware.ts e app\hooks\useMercadoPago.ts por serem necessários.
